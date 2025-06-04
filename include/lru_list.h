@@ -21,5 +21,6 @@ void lru_list_cleanup(LRU_List_t* lru_list, int associativity);
 Node_t* lru_list_get_tail(LRU_List_t* lru_list); // get lru
 Node_t* lru_list_get_head(LRU_List_t* lru_list); // get mru
 void lru_list_move_to_head(LRU_List_t* lru_list, int way); // move accessed way to head of list, i.e. mru
+void lru_update_on_invalid(LRU_List_t* lru_list, int victim_way);
 
 #endif

@@ -128,7 +128,8 @@ int cache_select_victim_way(const cache_t* cache, int set, int associativity) {
             plru_update_on_invalid(cache, set, victim_way, associativity);
             break;
         case LRU:
-            // TODO
+            printf("LRU: Update on invalid\n");
+            lru_update_on_invalid(cache->lru_lists[set], victim_way);
             break;
         default:
             // default is RANDOM so do nothing
@@ -201,7 +202,14 @@ int plru_replacement(const cache_t* cache, int set, int associativity) {
 }
 
 int lru_replacement(const cache_t* cache, int set, int associativity) {
-    return 0;
+    int victim_way = 0;
+    LRU_List_t* lru_list = cache->lru_lists[set];
+
+    victim_way = lru_list_get_tail(lru_list)->way_index;
+    lru_list_move_to_head(lru_list, victim_way);
+    printf("LRU: Selected way is %d\n", victim_way);
+
+    return victim_way;
 }
 
 // Update the tree since we just accessed a line
