@@ -2,8 +2,8 @@
 
 #include "lru_list.h"
 
-void lru_list_init(LRU_List_t* lru_list, int associativity) {
-    lru_list = malloc(sizeof(LRU_List_t));
+LRU_List_t* lru_list_init(int associativity) {
+    LRU_List_t* lru_list = malloc(sizeof(LRU_List_t));
     lru_list->way_map = malloc(sizeof(Node_t*) * associativity);
 
     Node_t* temp = NULL;
@@ -27,6 +27,8 @@ void lru_list_init(LRU_List_t* lru_list, int associativity) {
         lru_list->way_map[i] = temp;
     }
     lru_list->tail->next = lru_list->head;
+
+    return lru_list;
 }
 
 void lru_list_cleanup(LRU_List_t* lru_list, int associativity) {
@@ -36,6 +38,7 @@ void lru_list_cleanup(LRU_List_t* lru_list, int associativity) {
     lru_list->head = NULL;
     lru_list->tail = NULL;
     free(lru_list->way_map);
+    free(lru_list);
 }
 
 Node_t* lru_list_get_tail(LRU_List_t* lru_list) {

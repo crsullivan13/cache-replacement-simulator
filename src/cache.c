@@ -56,7 +56,7 @@ int cache_create(cache_t* cache, enum Policy policy, int capacity, int associati
             cache->plru_trees[i] = btree_init(cache->associativity - 1);
             memset(cache->plru_trees[i], 0, sizeof(int) * cache->associativity);
         } else if ( cache->policy == LRU ) {
-            lru_list_init(cache->lru_lists[i], cache->associativity);
+            cache->lru_lists[i] = lru_list_init(cache->associativity);
         }
     }
 

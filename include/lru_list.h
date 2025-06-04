@@ -15,7 +15,7 @@ typedef struct
     Node_t** way_map; // Map to quickly get way node on access rather than searching whole list
 } LRU_List_t;
 
-void lru_list_init(LRU_List_t* lru_list, int associativity);
+LRU_List_t*  lru_list_init(int associativity);
 void lru_list_cleanup(LRU_List_t* lru_list, int associativity);
 
 Node_t* lru_list_get_tail(LRU_List_t* lru_list); // get lru
