@@ -5,6 +5,8 @@
 
 #include "cache.h"
 
+// Takes user input string and converts to policy enum value
+// Defaults to RANDOM if policy given is not valid
 enum Policy cache_convert_policy(char* policy_string) {
     enum Policy policy = RANDOM;
 
@@ -19,9 +21,75 @@ enum Policy cache_convert_policy(char* policy_string) {
     return policy;
 }
 
+void cleanup_sets_on_init_error(cache_t* cache, enum Policy policy, int allocated_sets) {
+    if ( allocated_sets == 0 ) {
+
+    } else {
+        for ( int i = 0; i < allocated_sets; i++ ) {
+            free(cache->data_array[i]);
+            free(cache->directory[i]);
+
+            if ( cache->policy == PLRU ) {
+                // TODO
+            } else if ( cache->policy == LRU ) {
+                // TODO
+            }
+        }
+    }
+}
+
+int init_cache_sets(cache_t* cache, enum Policy policy, int number_of_cache_sets) {
+    int error = 0;
+    int i = 0;
+
+    for ( i = 0; i < number_of_cache_sets; i++ ) {
+        cache->data_array[i] = malloc(sizeof(uint64_t) * ( CACHE_LINE_SIZE / sizeof(uint64_t) ) * cache->associativity);
+        if ( cache->data_array[i] == NULL ) {
+            error = 1;
+            fprintf(stderr, "ERROR: Cache data array init for set %d failed due to NULL malloc return\n", i);
+            break;
+        }
+
+        cache->directory[i] = malloc(sizeof(directory_entry_t) * cache->associativity);
+        if ( cache->directory[i] == NULL ) {
+            error = 1;
+            fprintf(stderr, "ERROR: Cache directory init for set %d failed due to NULL malloc return\n", i);
+            break;
+        } else {
+            memset(cache->directory[i], 0, sizeof(directory_entry_t) * cache->associativity);
+        } 
+
+        if ( cache->policy == PLRU ) {
+            cache->plru_trees[i] = btree_init(cache->associativity - 1);
+            if ( cache->plru_trees[i] == NULL ) {
+                error = 1;
+                fprintf(stderr, "ERROR: Cache init for set %d failed due to NULL plru tree root\n", i);
+                break;
+            } else {
+                memset(cache->plru_trees[i], 0, sizeof(int) * cache->associativity);
+            }
+        } else if ( cache->policy == LRU ) {
+            cache->lru_lists[i] = lru_list_init(cache->associativity);
+            if ( cache->lru_lists[i] == NULL ) {
+                error = 1;
+                fprintf(stderr, "ERROR: Cache init for set %d failed due to NULL lru list\n", i);
+                break;
+            }
+        }
+    }
+
+    if ( error == 1 ) {
+        cleanup_sets_on_init_error(cache, policy, i);
+    }
+
+    return error;
+}
+
 // creates and inits our cache model
 //TODO: Handle errors
 int cache_create(cache_t* cache, enum Policy policy, int capacity, int associativity) {
+    int error = 0;
+
     cache->policy = policy;
     cache->capacity = capacity;
     cache->associativity = associativity;
@@ -32,35 +100,46 @@ int cache_create(cache_t* cache, enum Policy policy, int capacity, int associati
     cache->number_of_cache_sets = number_of_cache_sets;
 
     cache->data_array = malloc(sizeof(uint64_t*) * number_of_cache_sets);
+    if ( cache->data_array == NULL ) {
+        error = 1;
+        fprintf(stderr, "ERROR: Cache init failed due data array NULL malloc return\n");
+        return error;
+    }
+
     cache->directory = malloc(sizeof(directory_entry_t*) * number_of_cache_sets);
+    if ( cache->directory == NULL ) {
+        error = 1;
+        fprintf(stderr, "ERROR: Cache init failed due directory NULL malloc return\n");
+        return error;
+    }
 
     if ( cache->policy == PLRU ) {
         cache->plru_trees = malloc(sizeof(int*) * number_of_cache_sets);
+        if ( cache->plru_trees == NULL ) {
+            error = 1;
+            fprintf(stderr, "ERROR: Cache init failed due prlu trees NULL malloc return\n");
+            return error;
+        }
     } else {
         cache->plru_trees = NULL;
     }
 
     if ( cache->policy == LRU ) {
         cache->lru_lists = malloc(sizeof(LRU_List_t*) * number_of_cache_sets);
+        if ( cache->lru_lists == NULL ) {
+            error = 1;
+            fprintf(stderr, "ERROR: Cache init failed due lru lists NULL malloc return\n");
+            return error;
+        }
     } else {
         cache->lru_lists = NULL;
     }
-    
-    for ( int i = 0; i < number_of_cache_sets; i++ ) {
-        cache->data_array[i] = malloc(sizeof(uint64_t) * ( CACHE_LINE_SIZE / sizeof(uint64_t) ) * cache->associativity);
 
-        cache->directory[i] = malloc(sizeof(directory_entry_t) * cache->associativity);
-        memset(cache->directory[i], 0, sizeof(directory_entry_t) * cache->associativity);
-
-        if ( cache->policy == PLRU ) {
-            cache->plru_trees[i] = btree_init(cache->associativity - 1);
-            memset(cache->plru_trees[i], 0, sizeof(int) * cache->associativity);
-        } else if ( cache->policy == LRU ) {
-            cache->lru_lists[i] = lru_list_init(cache->associativity);
-        }
+    if ( error == 0) {
+        error = init_cache_sets(cache, policy, number_of_cache_sets);
     }
 
-    return 0;
+    return error;
 }
 
 int cache_cleanup(cache_t* cache) {
@@ -124,11 +203,11 @@ int cache_select_victim_way(const cache_t* cache, int set, int associativity) {
             // Nothing to be done
             break;
         case PLRU:
-            printf("PLRU: Update on invalid\n");
+            //printf("PLRU: Update on invalid\n");
             plru_update_on_invalid(cache, set, victim_way, associativity);
             break;
         case LRU:
-            printf("LRU: Update on invalid\n");
+            //printf("LRU: Update on invalid\n");
             lru_update_on_invalid(cache->lru_lists[set], victim_way);
             break;
         default:

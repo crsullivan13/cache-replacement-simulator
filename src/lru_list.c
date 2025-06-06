@@ -3,7 +3,13 @@
 
 #include "lru_list.h"
 
+// Initializes an LRU list for given associativity
+// Returns NULL on error 
 LRU_List_t* lru_list_init(int associativity) {
+    if ( associativity <= 0 ) {
+        return NULL;
+    }
+
     LRU_List_t* lru_list = malloc(sizeof(LRU_List_t));
     lru_list->way_map = malloc(sizeof(Node_t*) * associativity);
 
@@ -29,7 +35,7 @@ LRU_List_t* lru_list_init(int associativity) {
     }
     lru_list->tail->next = lru_list->head;
 
-    printf("Tail is %d, head is %d\n", lru_list->tail->way_index, lru_list->head->way_index);
+    //printf("Tail is %d, head is %d\n", lru_list->tail->way_index, lru_list->head->way_index);
 
     return lru_list;
 }
@@ -79,5 +85,5 @@ void lru_list_move_to_head(LRU_List_t* lru_list, int way) {
 
 void lru_update_on_invalid(LRU_List_t* lru_list, int victim_way) {
     lru_list_move_to_head(lru_list, victim_way);
-    printf("LRU: tail (lru) is now %d\n", lru_list->tail->way_index);
+    //printf("LRU: tail (lru) is now %d\n", lru_list->tail->way_index);
 }
