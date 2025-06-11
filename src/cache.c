@@ -28,7 +28,7 @@ int cache_create(cache_t* cache, enum Policy policy, int capacity, int associati
 
     int cache_set_size = associativity * CACHE_LINE_SIZE;
     int number_of_cache_sets = (capacity * 1024) / cache_set_size;
-    printf("Set size %d, number of sets %d\n", cache_set_size, number_of_cache_sets);
+    //printf("Set size %d, number of sets %d\n", cache_set_size, number_of_cache_sets);
     cache->number_of_cache_sets = number_of_cache_sets;
 
     cache->data_array = malloc(sizeof(uint64_t*) * number_of_cache_sets);
@@ -124,11 +124,11 @@ int cache_select_victim_way(const cache_t* cache, int set, int associativity) {
             // Nothing to be done
             break;
         case PLRU:
-            printf("PLRU: Update on invalid\n");
+            //printf("PLRU: Update on invalid\n");
             plru_update_on_invalid(cache, set, victim_way, associativity);
             break;
         case LRU:
-            printf("LRU: Update on invalid\n");
+            //printf("LRU: Update on invalid\n");
             lru_update_on_invalid(cache->lru_lists[set], victim_way);
             break;
         default:
@@ -148,7 +148,7 @@ int find_invalid_line(const cache_t* cache, int set, int associativity) {
     for ( int i = 0; i < associativity; i++ ) {
         if ( directory_data[i].valid == false ) {
             victim_way = i;
-            printf("EMPTY: Invalid (empty) way selected is %d\n", victim_way);
+            //printf("EMPTY: Invalid (empty) way selected is %d\n", victim_way);
             break;
         }
     }
@@ -168,7 +168,7 @@ int random_replacement(const cache_t* cache, int set, int associativity) {
             victim_way = i;
         }
     }
-    printf("RANDOM: No invalids, random selection is %d for lfsr value %d\n", victim_way, lfsr_value);
+    //printf("RANDOM: No invalids, random selection is %d for lfsr value %d\n", victim_way, lfsr_value);
 
     return victim_way;
 }
@@ -196,7 +196,7 @@ int plru_replacement(const cache_t* cache, int set, int associativity) {
     // go one level past lru leaf in tree to get the lru "node", then do math to convert node index to cache way
     victim_way = plru_tree[victim_way] == 0 ? btree_get_right_child(victim_way) : btree_get_left_child(victim_way);
     victim_way = victim_way - ( associativity - 1);
-    printf("PLRU: Selected way is %d\n", victim_way);
+    //printf("PLRU: Selected way is %d\n", victim_way);
 
     return victim_way;
 }
@@ -207,7 +207,7 @@ int lru_replacement(const cache_t* cache, int set, int associativity) {
 
     victim_way = lru_list_get_tail(lru_list)->way_index;
     lru_list_move_to_head(lru_list, victim_way);
-    printf("LRU: Selected way is %d\n", victim_way);
+    //printf("LRU: Selected way is %d\n", victim_way);
 
     return victim_way;
 }

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "cache.h"
+#include "logging.h"
 #include "util.h"
 
 int main(int argc, char* argv[]) {
@@ -17,6 +18,7 @@ int main(int argc, char* argv[]) {
     }
 
     printf("Hello cache: policy is %s\n", argv[1]);
+    LOG("yay logging!");
 
     cache_t my_cache;
     cache_create(&my_cache, cache_convert_policy(argv[1]), 1024, 16);
