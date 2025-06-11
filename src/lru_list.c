@@ -3,7 +3,13 @@
 
 #include "lru_list.h"
 
+// Initializes an LRU list for given associativity
+// Returns NULL on error 
 LRU_List_t* lru_list_init(int associativity) {
+    if ( associativity <= 0 ) {
+        return NULL;
+    }
+
     LRU_List_t* lru_list = malloc(sizeof(LRU_List_t));
     lru_list->way_map = malloc(sizeof(Node_t*) * associativity);
 

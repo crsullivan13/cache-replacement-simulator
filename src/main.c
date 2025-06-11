@@ -21,7 +21,10 @@ int main(int argc, char* argv[]) {
     LOG("yay logging!");
 
     cache_t my_cache;
-    cache_create(&my_cache, cache_convert_policy(argv[1]), 1024, 16);
+    if ( cache_create(&my_cache, cache_convert_policy(argv[1]), 1024, 16) != 0 ) {
+        fprintf(stderr, "ERROR: Cache creation failed\n");
+        exit(1);
+    }
 
     for ( int i = 0; i < my_cache.associativity * 2; i++ ) {
         int victim_way = cache_select_victim_way(&my_cache, 5, my_cache.associativity);
