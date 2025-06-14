@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "util.h"
 
@@ -23,4 +24,15 @@ int findPowerOf2(int value) {
     }
 
     return power;
+}
+
+// must call free on returned list
+uint64_t* gen_rand_addresses(int number_of_addresses) {
+    uint64_t* addresses = malloc(sizeof(uint64_t) * number_of_addresses);
+
+    for ( int i = 0; i < number_of_addresses; i++) {
+        addresses[i] = rand();
+    }
+
+    return addresses;
 }

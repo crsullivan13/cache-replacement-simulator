@@ -35,8 +35,12 @@ int main(int argc, char* argv[]) {
     int set_bits = findPowerOf2(my_cache.number_of_cache_sets);
     int set_mask = ( ( 1 << set_bits ) - 1 );
     LOG("Set mask is %x\n", set_mask << CACHE_LINE_LOG2);
-    for ( int i = 0; i < my_cache.associativity * 2; i++ ) {
-        address = rand();
+
+    int number_of_addresses = 16384;
+    uint64_t* addresses = gen_rand_addresses(number_of_addresses);
+
+    for ( int i = 0; i < number_of_addresses; i++ ) {
+        address = addresses[i];
         set = ( address >> CACHE_LINE_LOG2 ) & ( set_mask );
         tag = ( address >> ( CACHE_LINE_LOG2 + set_bits ) );
         LOG("Address is %x, set is %d, tag is %d\n", address, set, tag);
@@ -51,5 +55,6 @@ int main(int argc, char* argv[]) {
         LOG("Is access a hit after line fill? %d\n", is_cache_hit(&my_cache, set, tag));
     }
 
+    free(addresses);
     cache_cleanup(&my_cache);
 }
