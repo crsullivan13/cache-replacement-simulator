@@ -66,7 +66,7 @@ int init_cache_sets(cache_t* cache, enum Policy policy, int number_of_cache_sets
                 fprintf(stderr, "ERROR: Cache init for set %d failed due to NULL plru tree root\n", i);
                 break;
             } else {
-                memset(cache->plru_trees[i], 0, sizeof(int) * cache->associativity);
+                memset(cache->plru_trees[i], 0, sizeof(int) * ( cache->associativity - 1 ));
             }
         } else if ( cache->policy == LRU ) {
             cache->lru_lists[i] = lru_list_init(cache->associativity);
