@@ -169,9 +169,9 @@ directory_entry_t* cache_directory_read(const cache_t* cache, int set) {
     return cache->directory[set];
 }
 
-// TODO: make this actually useful
-void cache_directory_write(cache_t* cache, int set, int way) {
+void cache_directory_write(cache_t* cache, int set, int way, uint64_t tag) {
     cache->directory[set][way].valid = true;
+    cache->directory[set][way].tag = tag;
 }
 
 int cache_select_victim_way(const cache_t* cache, int set, int associativity) {
@@ -217,6 +217,30 @@ int cache_select_victim_way(const cache_t* cache, int set, int associativity) {
     }
 
     return victim_way;
+}
+
+bool is_cache_hit(const cache_t* cache, int set, uint64_t tag) {
+    bool is_hit = false;
+
+    directory_entry_t* directory_data = cache_directory_read(cache, set);
+    int i;
+    for ( i = 0; i < cache->associativity; i++ ) {
+        if ( directory_data[i].tag == tag ){
+            is_hit = true;
+            break;
+        }
+    }
+
+    // TODO: Move this somewhere else, detach hit checking with metadata updates
+    if ( is_hit ) {
+        if ( cache->policy == PLRU ) {
+            plru_update_on_invalid(cache, set, i, cache->associativity);
+        } else if ( cache->policy == LRU ) {
+            lru_update_on_invalid(cache->lru_lists[set], i);
+        }
+    }
+
+    return is_hit;
 }
 
 int find_invalid_line(const cache_t* cache, int set, int associativity) {

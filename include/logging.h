@@ -1,3 +1,6 @@
+#ifndef LOGGING_H
+#define LOGGING_H
+
 #include <stdio.h>
 #include <stdarg.h>
 
@@ -14,8 +17,10 @@ void _clog(const char* file, const char* func, const int line, const char* fmt, 
     vfprintf(stderr, fmt, args);
     va_end(args);
 
-    fprintf(stderr, "\n");
+    //fprintf(stderr, "\n");
 }
 #else
 #define LOG(fmt, ...) {}
+#endif
+
 #endif

@@ -13,3 +13,14 @@ bool isValidConfig(const char* config) {
             strncmp("plru", config, strlen("plru")) == 0 );
     }
 }
+
+// non-powers of 2 will waste address bits
+int findPowerOf2(int value) {
+    int power = 0;
+    
+    while ( ( 1 << power ) < value ) {
+        power += 1;
+    }
+
+    return power;
+}
