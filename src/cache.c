@@ -225,7 +225,7 @@ bool is_cache_hit(const cache_t* cache, int set, uint64_t tag) {
     directory_entry_t* directory_data = cache_directory_read(cache, set);
     int i;
     for ( i = 0; i < cache->associativity; i++ ) {
-        if ( directory_data[i].tag == tag ){
+        if ( directory_data[i].tag == tag && directory_data[i].valid ){
             is_hit = true;
             break;
         }
