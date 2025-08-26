@@ -10,12 +10,12 @@ LRU_List_t* lru_list_init(int associativity) {
         return NULL;
     }
 
-    LRU_List_t* lru_list = malloc(sizeof(LRU_List_t));
-    lru_list->way_map = malloc(sizeof(Node_t*) * associativity);
+    LRU_List_t* lru_list = (LRU_List_t*)(sizeof(LRU_List_t));
+    lru_list->way_map = (Node_t**)malloc(sizeof(Node_t*) * associativity);
 
     Node_t* temp = NULL;
     for ( int i = 0; i < associativity; i++ ) {
-        temp = malloc(sizeof(Node_t));
+        temp = (Node_t*)malloc(sizeof(Node_t));
         temp->next = NULL;
         temp->prev = NULL;
         temp->way_index = i;

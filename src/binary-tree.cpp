@@ -4,7 +4,7 @@
 #include "binary-tree.h"
 
 int* btree_init(int number_of_nodes) {
-    return malloc(sizeof(int) * number_of_nodes);
+    return (int*) malloc(sizeof(int) * number_of_nodes);
 }
 
 void btree_cleanup(int* tree) {
