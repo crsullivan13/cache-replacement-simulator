@@ -5,226 +5,58 @@
 
 #include "cache.h"
 
+static constexpr int compute_sets(int capacity, int associativity) {
+    return ( capacity * 1024 ) / ( associativity * CACHE_LINE_SIZE );
+}
+
 // Takes user input string and converts to policy enum value
 // Defaults to RANDOM if policy given is not valid
-enum Policy cache_convert_policy(char* policy_string) {
-    enum Policy policy = RANDOM;
+Policy cache_convert_policy(std::string_view policy_string) {
+    Policy policy = RANDOM;
 
-    if ( strncmp("random", policy_string, strlen("random")) == 0 ) {
+    if ( "random" == policy_string ) {
         policy = RANDOM;
-    } else if ( strncmp("plru", policy_string, strlen("plru")) == 0 ) {
+    } else if ( "plru" == policy_string ) {
         policy = PLRU;
-    } else if ( strncmp("lru", policy_string, strlen("lru")) == 0 ) {
+    } else if ( "lru" == policy_string ) {
         policy = LRU;
     }
 
     return policy;
 }
 
-void cleanup_sets_on_init_error(cache_t* cache, enum Policy policy, int allocated_sets) {
-    if ( allocated_sets == 0 ) {
+void Cache::init_cache_sets() {
+    if ( m_policy == PLRU ) {
+        m_plru_trees.reserve(m_number_of_cache_sets);
+    } 
 
-    } else {
-        for ( int i = 0; i < allocated_sets; i++ ) {
-            free(cache->data_array[i]);
-            free(cache->directory[i]);
+    for ( int i = 0; i < m_number_of_cache_sets; i++ ) {
+        m_directory.emplace_back(m_associativity);
 
-            if ( cache->policy == PLRU ) {
-                // TODO
-            } else if ( cache->policy == LRU ) {
-                // TODO
-            }
+        if ( m_policy == PLRU ) {
+            m_plru_trees.emplace_back(m_associativity - 1);
+        } else if ( m_policy == LRU ) {
+           m_lru_lists.emplace_back(m_associativity);
         }
     }
 }
 
-int init_cache_sets(cache_t* cache, enum Policy policy, int number_of_cache_sets) {
-    int error = 0;
-    int i = 0;
-
-    for ( i = 0; i < number_of_cache_sets; i++ ) {
-        cache->data_array[i] = (uint64_t*) malloc(sizeof(uint64_t) * ( CACHE_LINE_SIZE / sizeof(uint64_t) ) * cache->associativity);
-        if ( cache->data_array[i] == NULL ) {
-            error = 1;
-            fprintf(stderr, "ERROR: Cache data array init for set %d failed due to NULL malloc return\n", i);
-            break;
-        }
-
-        cache->directory[i] = (directory_entry_t*) malloc(sizeof(directory_entry_t) * cache->associativity);
-        if ( cache->directory[i] == NULL ) {
-            error = 1;
-            fprintf(stderr, "ERROR: Cache directory init for set %d failed due to NULL malloc return\n", i);
-            break;
-        } else {
-            memset(cache->directory[i], 0, sizeof(directory_entry_t) * cache->associativity);
-        } 
-
-        if ( cache->policy == PLRU ) {
-            cache->plru_trees[i] = btree_init(cache->associativity - 1);
-            if ( cache->plru_trees[i] == NULL ) {
-                error = 1;
-                fprintf(stderr, "ERROR: Cache init for set %d failed due to NULL plru tree root\n", i);
-                break;
-            } else {
-                memset(cache->plru_trees[i], 0, sizeof(int) * ( cache->associativity - 1 ));
-            }
-        } else if ( cache->policy == LRU ) {
-            cache->lru_lists[i] = lru_list_init(cache->associativity);
-            if ( cache->lru_lists[i] == NULL ) {
-                error = 1;
-                fprintf(stderr, "ERROR: Cache init for set %d failed due to NULL lru list\n", i);
-                break;
-            }
-        }
-    }
-
-    if ( error == 1 ) {
-        cleanup_sets_on_init_error(cache, policy, i);
-    }
-
-    return error;
+Cache::Cache(Policy policy, int capacity, int associativity) 
+            : m_policy { policy }, 
+            m_capacity { capacity }, 
+            m_associativity { associativity },
+            m_number_of_cache_sets { compute_sets(capacity, associativity) }
+{
+    init_cache_sets();
 }
 
-// creates and inits our cache model
-//TODO: Handle errors
-int cache_create(cache_t* cache, enum Policy policy, int capacity, int associativity) {
-    int error = 0;
 
-    cache->policy = policy;
-    cache->capacity = capacity;
-    cache->associativity = associativity;
-
-    int cache_set_size = associativity * CACHE_LINE_SIZE;
-    int number_of_cache_sets = (capacity * 1024) / cache_set_size;
-    //printf("Set size %d, number of sets %d\n", cache_set_size, number_of_cache_sets);
-    cache->number_of_cache_sets = number_of_cache_sets;
-
-    cache->data_array = (uint64_t**) malloc(sizeof(uint64_t*) * number_of_cache_sets);
-    if ( cache->data_array == NULL ) {
-        error = 1;
-        fprintf(stderr, "ERROR: Cache init failed due data array NULL malloc return\n");
-        return error;
-    }
-
-    cache->directory = (directory_entry_t**) malloc(sizeof(directory_entry_t*) * number_of_cache_sets);
-    if ( cache->directory == NULL ) {
-        error = 1;
-        fprintf(stderr, "ERROR: Cache init failed due directory NULL malloc return\n");
-        return error;
-    }
-
-    if ( cache->policy == PLRU ) {
-        cache->plru_trees = (int**) malloc(sizeof(int*) * number_of_cache_sets);
-        if ( cache->plru_trees == NULL ) {
-            error = 1;
-            fprintf(stderr, "ERROR: Cache init failed due prlu trees NULL malloc return\n");
-            return error;
-        }
-    } else {
-        cache->plru_trees = NULL;
-    }
-
-    if ( cache->policy == LRU ) {
-        cache->lru_lists = (LRU_List_t**) malloc(sizeof(LRU_List_t*) * number_of_cache_sets);
-        if ( cache->lru_lists == NULL ) {
-            error = 1;
-            fprintf(stderr, "ERROR: Cache init failed due lru lists NULL malloc return\n");
-            return error;
-        }
-    } else {
-        cache->lru_lists = NULL;
-    }
-
-    if ( error == 0) {
-        error = init_cache_sets(cache, policy, number_of_cache_sets);
-    }
-
-    return error;
-}
-
-int cache_cleanup(cache_t* cache) {
-    for ( int i = 0; i < cache->number_of_cache_sets; i++ ) {
-        free(cache->data_array[i]);
-        free(cache->directory[i]);
-
-        if ( cache->policy == PLRU ) {
-            btree_cleanup(cache->plru_trees[i]);
-        } else if ( cache->policy == LRU ) {
-            lru_list_cleanup(cache->lru_lists[i], cache->associativity);
-        }
-    }
-
-    free(cache->data_array);
-    free(cache->directory);
-    if ( cache->policy == PLRU ) {
-        free(cache->plru_trees);
-    } else if ( cache->policy == LRU) {
-        free(cache->lru_lists);
-    }
-
-    return 0;
-}
-
-directory_entry_t* cache_directory_read(const cache_t* cache, int set) {
-    return cache->directory[set];
-}
-
-void cache_directory_write(cache_t* cache, int set, int way, uint64_t tag) {
-    cache->directory[set][way].valid = true;
-    cache->directory[set][way].tag = tag;
-}
-
-int cache_select_victim_way(const cache_t* cache, int set, int associativity) {
-    int victim_way = find_invalid_line(cache, set, associativity);
-
-    // negtaive means no invalid lines in the set and we need to call a replacement policy
-    // if not negative (i.e. we found and empty line) we may need to do some other tasks to satisfy the policy
-    if ( victim_way == -1 ) {
-        switch (cache->policy)
-        {
-        case RANDOM:
-            victim_way = random_replacement(cache, set, associativity);
-            break;
-        case PLRU:
-            victim_way = plru_replacement(cache, set, associativity);
-            break;
-        case LRU:
-            victim_way = lru_replacement(cache, set, associativity);
-            break;
-        default:
-            victim_way = random_replacement(cache, set, associativity);
-            break;
-        }
-    } else {
-        // be explicit about what cases don't need anything
-        switch (cache->policy)
-        {
-        case RANDOM:
-            // Nothing to be done
-            break;
-        case PLRU:
-            //printf("PLRU: Update on invalid\n");
-            plru_update_on_invalid(cache, set, victim_way, associativity);
-            break;
-        case LRU:
-            //printf("LRU: Update on invalid\n");
-            lru_update_on_invalid(cache->lru_lists[set], victim_way);
-            break;
-        default:
-            // default is RANDOM so do nothing
-            break;
-        }
-    }
-
-    return victim_way;
-}
-
-bool is_cache_hit(const cache_t* cache, int set, uint64_t tag) {
+bool Cache::is_cache_hit(int set, uint64_t tag) {
     bool is_hit = false;
 
-    directory_entry_t* directory_data = cache_directory_read(cache, set);
+    const std::vector<DirectoryEntry>& directory_data = m_directory[set];
     int i;
-    for ( i = 0; i < cache->associativity; i++ ) {
+    for ( i = 0; i < m_associativity; i++ ) {
         if ( directory_data[i].tag == tag && directory_data[i].valid ){
             is_hit = true;
             break;
@@ -233,22 +65,22 @@ bool is_cache_hit(const cache_t* cache, int set, uint64_t tag) {
 
     // TODO: Move this somewhere else, detach hit checking with metadata updates
     if ( is_hit ) {
-        if ( cache->policy == PLRU ) {
-            plru_update_on_invalid(cache, set, i, cache->associativity);
-        } else if ( cache->policy == LRU ) {
-            lru_update_on_invalid(cache->lru_lists[set], i);
+        if ( m_policy == PLRU ) {
+            plru_update_on_invalid(set, /*way=*/i);
+        } else if ( m_policy == LRU ) {
+            m_lru_lists[set].make_mru(i);
         }
     }
 
     return is_hit;
 }
 
-int find_invalid_line(const cache_t* cache, int set, int associativity) {
+int Cache::find_invalid_line(int set) const {
     int victim_way = -1;
-    directory_entry_t* directory_data = cache_directory_read(cache, set);
+    const std::vector<DirectoryEntry>& directory_data = m_directory[set];
 
     // Select invalid lines first
-    for ( int i = 0; i < associativity; i++ ) {
+    for ( int i = 0; i < m_associativity; i++ ) {
         if ( directory_data[i].valid == false ) {
             victim_way = i;
             //printf("EMPTY: Invalid (empty) way selected is %d\n", victim_way);
@@ -259,15 +91,14 @@ int find_invalid_line(const cache_t* cache, int set, int associativity) {
     return victim_way;
 }
 
-int random_replacement(const cache_t* cache, int set, int associativity) {
+int Cache::random_replacement(int set) const {
     int victim_way = 0;
-    directory_entry_t* directory_data = cache_directory_read(cache, set);
 
     int lfsr_value = rand() % 1024; // Following the way this is done in rocket-chip-inclusive-cache code
                                     // i.e. not real lfsr, but simulated
 
-    for ( int i = 0; i < associativity; i++ ) {
-        if ( ( ( 1024 / associativity ) * i ) <= lfsr_value ) {
+    for ( int i = 0; i < m_associativity; i++ ) {
+        if ( ( ( 1024 / m_associativity ) * i ) <= lfsr_value ) {
             victim_way = i;
         }
     }
@@ -278,38 +109,38 @@ int random_replacement(const cache_t* cache, int set, int associativity) {
 
 // 0 -> right is lru
 // 1 -> left is lru
-int plru_replacement(const cache_t* cache, int set, int associativity) {
+int Cache::plru_replacement(int set) {
     int victim_way = 0;
-    int* plru_tree = cache->plru_trees[set];
+    Btree& plru_tree = m_plru_trees[set];
 
     // traverse actual nodes to find leaf that is lru
     int next_index = 0;
-    while ( next_index <= ( associativity - 2 ) ) {
+    while ( next_index <= ( m_associativity - 2 ) ) {
         victim_way = next_index;
-        if ( plru_tree[next_index] == 0 ) {
-            plru_tree[next_index] = 1;
-            next_index = btree_get_right_child(next_index);
+        if ( plru_tree.get_node_value(next_index) == 0 ) {
+            plru_tree.set_node_value(next_index, 1);
+            next_index = plru_tree.get_right_child(next_index);
         } else {
-            plru_tree[next_index] = 0;
-            next_index = btree_get_left_child(next_index);
+            plru_tree.set_node_value(next_index, 0);
+            next_index = plru_tree.get_left_child(next_index);
         }
     }
 
     // we only have associativity - 1 nodes in the tree, but we need to get the cache way that is lru
     // go one level past lru leaf in tree to get the lru "node", then do math to convert node index to cache way
-    victim_way = plru_tree[victim_way] == 0 ? btree_get_right_child(victim_way) : btree_get_left_child(victim_way);
-    victim_way = victim_way - ( associativity - 1);
+    victim_way = plru_tree.get_node_value(victim_way) == 0 ?  plru_tree.get_right_child(victim_way) : plru_tree.get_left_child(victim_way);
+    victim_way = victim_way - ( m_associativity - 1);
     //printf("PLRU: Selected way is %d\n", victim_way);
 
     return victim_way;
 }
 
-int lru_replacement(const cache_t* cache, int set, int associativity) {
+int Cache::lru_replacement(int set) {
     int victim_way = 0;
-    LRU_List_t* lru_list = cache->lru_lists[set];
+    LRUList& lru_list = m_lru_lists[set];
 
-    victim_way = lru_list_get_tail(lru_list)->way_index;
-    lru_list_move_to_head(lru_list, victim_way);
+    victim_way =  lru_list.get_lru();
+    lru_list.make_mru(victim_way);
     //printf("LRU: Selected way is %d\n", victim_way);
 
     return victim_way;
@@ -318,17 +149,74 @@ int lru_replacement(const cache_t* cache, int set, int associativity) {
 // Update the tree since we just accessed a line
 // 0 -> right is lru
 // 1 -> left is lru
-int plru_update_on_invalid(const cache_t* cache, int set, int way, int associativity) {
-    int* plru_tree = cache->plru_trees[set];
-    int old_parent_index = way + ( associativity - 1 );
+void Cache::plru_update_on_invalid(int set, int way) {
+    Btree& plru_tree = m_plru_trees[set];
+    int old_parent_index = way + ( m_associativity - 1 );
     int new_parent_index = old_parent_index;
 
     while ( new_parent_index != 0 )
     {
-        new_parent_index = btree_get_parent(new_parent_index);
-        plru_tree[new_parent_index] = old_parent_index % 2 ? 0 : 1;
+        new_parent_index = plru_tree.get_parent(new_parent_index);
+        plru_tree.set_node_value(new_parent_index, old_parent_index % 2 ? 0 : 1);
         old_parent_index = new_parent_index;
     }
-
-    return 0;
 }
+
+int Cache::select_victim_way(int set) {
+    int victim_way = find_invalid_line(set);
+
+    // negtaive means no invalid lines in the set and we need to call a replacement policy
+    // if not negative (i.e. we found and empty line) we may need to do some other tasks to satisfy the policy
+    if ( victim_way == -1 ) {
+        switch (m_policy)
+        {
+        case RANDOM:
+            victim_way = random_replacement(set);
+            break;
+        case PLRU:
+            victim_way = plru_replacement(set);
+            break;
+        case LRU:
+            victim_way = lru_replacement(set);
+            break;
+        default:
+            victim_way = random_replacement(set);
+            break;
+        }
+    } else {
+        switch (m_policy)
+        {
+        case RANDOM:
+            // Nothing to be done
+            break;
+        case PLRU:
+            //printf("PLRU: Update on invalid\n");
+            plru_update_on_invalid(set, victim_way);
+            break;
+        case LRU:
+            //printf("LRU: Update on invalid\n");
+            m_lru_lists[set].make_mru(victim_way);
+            break;
+        default:
+            // default is RANDOM so do nothing
+            break;
+        }
+    }
+
+    return victim_way;
+}
+
+void Cache::directory_write(int set, int way, uint64_t tag) {
+    std::vector<DirectoryEntry>& directory_data = m_directory[set];
+    directory_data[way].valid = true;
+    directory_data[way].tag = tag;
+}
+
+int Cache::get_number_of_cache_sets() const {
+    return m_number_of_cache_sets;
+}
+
+// void cache_directory_write(cache_t* cache, int set, int way, uint64_t tag) {
+//     cache->directory[set][way].valid = true;
+//     cache->directory[set][way].tag = tag;
+// }

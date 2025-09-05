@@ -1,6 +1,9 @@
 #ifndef CACHE_H
 #define CACHE_H
 
+#include <string>
+#include <vector>
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -12,42 +15,57 @@
 
 enum Policy { RANDOM, PLRU, LRU };
 
-typedef struct
+struct DirectoryEntry
 {
-    uint64_t tag;
-    bool valid;
-} directory_entry_t;
+    uint64_t tag { 0 };
+    bool valid { false };
+};
 
-typedef struct
-{
-    uint64_t** data_array; // We aren't actually storing data, do we need this??
-    directory_entry_t** directory;
-    int** plru_trees;
-    LRU_List_t** lru_lists;
+class Cache {
+    public:
+        Cache(Policy policy, int capacity, int associativity);
 
-    enum Policy policy;
-    int capacity; // In KB, i.e. 1024 is 1 MB
-    int associativity;
+        bool is_cache_hit(int set, uint64_t tag);
+        int select_victim_way(int set);
+        void directory_write(int set, int way, uint64_t tag);
 
-    int number_of_cache_sets;
-} cache_t;
+        int get_number_of_cache_sets() const;
+    private:
+        std::vector<std::vector<DirectoryEntry>> m_directory {};
+        std::vector<Btree> m_plru_trees {};
+        std::vector<LRUList> m_lru_lists {};
 
-enum Policy cache_convert_policy(char* policy_string);
+        enum Policy m_policy {};
+        int m_capacity {};
+        int m_associativity {};
 
-int cache_create(cache_t* cache, enum Policy policy, int capacity, int associativity);
-int cache_cleanup(cache_t* cache);
+        int m_number_of_cache_sets {};
 
-directory_entry_t* cache_directory_read(const cache_t* cache, int set);
-void cache_directory_write(cache_t* cache, int set, int way, uint64_t tag);
+        void init_cache_sets();
 
-int cache_select_victim_way(const cache_t* cache, int set, int associativity);
+        int find_invalid_line(int set) const;
+        int random_replacement(int set) const;
+        int plru_replacement(int set);
+        int lru_replacement(int set);
+        void plru_update_on_invalid(int set, int way);
+};
 
-bool is_cache_hit(const cache_t* cache, int set, uint64_t tag);
-int find_invalid_line(const cache_t* cache, int set, int associativity);
-int random_replacement(const cache_t* cache, int set, int associativity);
-int plru_replacement(const cache_t* cache, int set, int associativity);
-int lru_replacement(const cache_t* cache, int set, int associativity);
+Policy cache_convert_policy(std::string_view policy_string);
 
-int plru_update_on_invalid(const cache_t* cache, int set, int way, int associativity);
+// int cache_create(cache_t* cache, enum Policy policy, int capacity, int associativity);
+// int cache_cleanup(cache_t* cache);
+
+// directory_entry_t* cache_directory_read(const cache_t* cache, int set);
+// void cache_directory_write(cache_t* cache, int set, int way, uint64_t tag);
+
+// int cache_select_victim_way(const cache_t* cache, int set, int associativity);
+
+// bool is_cache_hit(const cache_t* cache, int set, uint64_t tag);
+// int find_invalid_line(const cache_t* cache, int set, int associativity);
+// int random_replacement(const cache_t* cache, int set, int associativity);
+// int plru_replacement(const cache_t* cache, int set, int associativity);
+// int lru_replacement(const cache_t* cache, int set, int associativity);
+
+// int plru_update_on_invalid(const cache_t* cache, int set, int way, int associativity);
 
 #endif

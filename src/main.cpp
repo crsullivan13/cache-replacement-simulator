@@ -21,18 +21,14 @@ int main(int argc, char* argv[]) {
 
     printf("Hello cache: policy is %s\n", argv[1]);
 
-    cache_t my_cache;
-    if ( cache_create(&my_cache, cache_convert_policy(argv[1]), 1024, 16) != 0 ) {
-        fprintf(stderr, "ERROR: Cache creation failed\n");
-        exit(1);
-    }
+    Cache my_cache {cache_convert_policy(argv[1]), 1024, 16};
 
     srand(time(NULL));
 
     int address = 0;
     int set = 0;
     int tag = 0;
-    int set_bits = findPowerOf2(my_cache.number_of_cache_sets);
+    int set_bits = findPowerOf2(my_cache.get_number_of_cache_sets());
     int set_mask = ( ( 1 << set_bits ) - 1 );
     LOG("Set mask is %x\n", set_mask << CACHE_LINE_LOG2);
 
@@ -45,16 +41,15 @@ int main(int argc, char* argv[]) {
         tag = ( address >> ( CACHE_LINE_LOG2 + set_bits ) );
         LOG("Address is %x, set is %d, tag is %d\n", address, set, tag);
 
-        if (  !is_cache_hit(&my_cache, set ,tag) ) {
+        if (  !my_cache.is_cache_hit(set ,tag) ) {
             LOG("Cache MISS\n");
-            cache_directory_write(&my_cache, set, cache_select_victim_way(&my_cache, set, my_cache.associativity), tag);
+            my_cache.directory_write(set, my_cache.select_victim_way(set), tag);
         } else {
             LOG("Cache HIT\n");
         }
 
-        LOG("Is access a hit after line fill? %d\n", is_cache_hit(&my_cache, set, tag));
+        //LOG("Is access a hit after line fill? %d\n", is_cache_hit(&my_cache, set, tag));
     }
 
     free(addresses);
-    cache_cleanup(&my_cache);
 }

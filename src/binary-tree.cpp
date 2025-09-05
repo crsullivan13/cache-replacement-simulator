@@ -3,26 +3,26 @@
 
 #include "binary-tree.h"
 
-int* btree_init(int number_of_nodes) {
-    return (int*) malloc(sizeof(int) * number_of_nodes);
-}
-
-void btree_cleanup(int* tree) {
-    free(tree);
-}
-
-int btree_get_left_child(int index) {
+int Btree::get_left_child(int index) const {
     return index * 2 + 1;
 }
 
-int btree_get_right_child(int index) {
+int Btree::get_right_child(int index) const {
     return index * 2 + 2;
 }
 
-int btree_get_parent(int index) {
+int Btree::get_parent(int index) const {
     if ( index <= 0 ) {
-        return 0; // shouldn't ever happen in our use case
+        return 0;
     } else {
-        return floor( ( index -1 ) / 2 );
+        return floor( ( index - 1 ) / 2 );
     }
+}
+
+void Btree::set_node_value(int index, int value) {
+    m_tree[index] = value;
+}
+
+int Btree::get_node_value(int index) const {
+    return m_tree[index];
 }
