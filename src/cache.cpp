@@ -215,8 +215,3 @@ void Cache::directory_write(int set, int way, uint64_t tag) {
 int Cache::get_number_of_cache_sets() const {
     return m_number_of_cache_sets;
 }
-
-// void cache_directory_write(cache_t* cache, int set, int way, uint64_t tag) {
-//     cache->directory[set][way].valid = true;
-//     cache->directory[set][way].tag = tag;
-// }

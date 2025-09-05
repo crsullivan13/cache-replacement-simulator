@@ -52,20 +52,4 @@ class Cache {
 
 Policy cache_convert_policy(std::string_view policy_string);
 
-// int cache_create(cache_t* cache, enum Policy policy, int capacity, int associativity);
-// int cache_cleanup(cache_t* cache);
-
-// directory_entry_t* cache_directory_read(const cache_t* cache, int set);
-// void cache_directory_write(cache_t* cache, int set, int way, uint64_t tag);
-
-// int cache_select_victim_way(const cache_t* cache, int set, int associativity);
-
-// bool is_cache_hit(const cache_t* cache, int set, uint64_t tag);
-// int find_invalid_line(const cache_t* cache, int set, int associativity);
-// int random_replacement(const cache_t* cache, int set, int associativity);
-// int plru_replacement(const cache_t* cache, int set, int associativity);
-// int lru_replacement(const cache_t* cache, int set, int associativity);
-
-// int plru_update_on_invalid(const cache_t* cache, int set, int way, int associativity);
-
 #endif
