@@ -2,13 +2,14 @@
 #define BINARY_TREE_H
 
 #include <memory>
+#include <string>
 
 // very simple array based binary tree implementation, for plru
 
 class Btree {
     public:
         Btree(int number_of_nodes)
-            : m_tree { std::make_unique<int[]>(number_of_nodes) } {}
+            : m_tree { std::make_unique<int[]>(number_of_nodes) }, m_num_nodes { number_of_nodes } {}
 
         int get_left_child(int index) const;
         int get_right_child(int index) const;
@@ -17,8 +18,11 @@ class Btree {
         void set_node_value(int index, int value);
         int get_node_value(int index) const;
 
+        std::string to_string();
+
     private:
         std::unique_ptr<int[]> m_tree {};
+        int m_num_nodes {};
 };
 
 #endif
