@@ -19,3 +19,12 @@ void LRUList::make_mru(int way) {
     auto itr = m_way_map[way];
     m_list.splice(m_list.begin(), m_list, itr);
 }
+
+std::string LRUList::to_string() {
+    std::string str;
+    for(auto node : m_list) {
+        str += std::to_string(node);
+        str += "->";
+    }
+    return str;
+}

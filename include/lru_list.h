@@ -3,6 +3,7 @@
 
 #include <list>
 #include <vector>
+#include <string>
 
 class LRUList {
     public:
@@ -10,6 +11,8 @@ class LRUList {
 
         int get_lru() const;
         void make_mru(int way);
+
+        std::string to_string();
 
     private:
         std::list<int> m_list {};
