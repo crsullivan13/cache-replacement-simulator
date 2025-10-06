@@ -3,6 +3,9 @@
 #include <string.h>
 #include <time.h>
 
+#include <string>
+#include <iostream>
+
 #include "cache.h"
 
 static constexpr int compute_sets(int capacity, int associativity) {
@@ -164,6 +167,7 @@ void Cache::plru_update_on_invalid(int set, int way) {
 
 int Cache::select_victim_way(int set) {
     int victim_way = find_invalid_line(set);
+    std::cout << m_plru_trees[set].to_string() << "\n";
 
     // negtaive means no invalid lines in the set and we need to call a replacement policy
     // if not negative (i.e. we found and empty line) we may need to do some other tasks to satisfy the policy
@@ -203,6 +207,8 @@ int Cache::select_victim_way(int set) {
         }
     }
 
+    std::cout << "VICTIM WAY: " << victim_way << "\n";
+    std::cout << m_plru_trees[set].to_string() << "\n";
     return victim_way;
 }
 
